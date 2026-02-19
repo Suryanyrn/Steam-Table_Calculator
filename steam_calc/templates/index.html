@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Table Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * { box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body, html { min-height: 100%; margin: 0; color: #f8fafc; overflow-x: hidden; background: #0f172a; }
+        
+        .video-bg {
+            position: fixed; right: 0; bottom: 0; min-width: 100%; min-height: 100%;
+            z-index: -1; object-fit: cover; filter: brightness(0.20) contrast(1.1);
+        }
+        
+        .container {
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 50px 20px; margin-top: 20px;
+        }
+        
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px; padding: 50px; width: 100%; max-width: 1100px;
+            box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        }
+        
+        .header-section { text-align: center; margin-bottom: 40px; }
+        h2 { margin: 0 0 12px 0; font-weight: 700; font-size: 2rem; letter-spacing: -0.5px; }
+        .subtitle { font-size: 0.95rem; color: #94a3b8; font-weight: 400; }
+        
+        .mode-selector { margin-top: 25px; padding-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .mode-btn {
+            flex: 1; padding: 12px 20px; background: rgba(255, 255, 255, 0.1); color: #cbd5e1;
+            border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; cursor: pointer;
+            transition: all 0.3s ease; font-weight: 500; font-size: 0.9rem;
+        }
+        .mode-btn:hover { background: rgba(255, 255, 255, 0.15); }
+        .mode-btn.active {
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+            border-color: transparent;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+        }
+        
+        .form-section { margin-bottom: 35px; }
+        .input-row { display: flex; gap: 20px; margin-bottom: 25px; }
+        .input-group { flex: 1; display: flex; flex-direction: column; }
+        
+        .rankine-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;
+        }
+        .rankine-section { padding: 20px; background: rgba(51, 65, 85, 0.2); border-radius: 12px;
+                          border: 1px solid rgba(255, 255, 255, 0.08); }
+        .rankine-section .input-group { margin-bottom: 18px; }
+        .section-subtitle { margin-top: 0; font-size: 1rem; color: #38bdf8; font-weight: 600; margin-bottom: 15px; }
+        
+        .input-with-unit { display: flex; }
+        .input-with-unit input {
+            flex: 1; padding: 13px 16px; border-radius: 10px 0 0 10px; border: 1.5px solid rgba(255, 255, 255, 0.15);
+            background: rgba(51, 65, 85, 0.4); color: white; border-right: none; font-size: 1rem;
+            transition: all 0.3s ease; outline: none;
+        }
+        .input-with-unit input:focus {
+            background: rgba(51, 65, 85, 0.7); border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+        .input-group input[type="number"] {
+            padding: 13px 16px; border-radius: 10px; border: 1.5px solid rgba(255, 255, 255, 0.15);
+            background: rgba(51, 65, 85, 0.4); color: white; font-size: 1rem;
+            transition: all 0.3s ease; outline: none;
+        }
+        .input-group input[type="number"]:focus {
+            background: rgba(51, 65, 85, 0.7); border-color: rgba(56, 189, 248, 0.5);
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+        }
+        .input-with-unit select {
+            padding: 13px 14px; border-radius: 0 10px 10px 0; border: 1.5px solid rgba(255, 255, 255, 0.15);
+            background: rgba(51, 65, 85, 0.4); color: white; cursor: pointer; font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+        .input-with-unit select:hover { background: rgba(51, 65, 85, 0.6); }
+        .input-with-unit select:focus { border-color: rgba(56, 189, 248, 0.5); }
+        .input-with-unit select option { background: #1e293b; color: white; }
+        
+        label { margin-bottom: 10px; font-size: 0.85rem; color: #cbd5e1; font-weight: 500; letter-spacing: 0.3px; text-transform: uppercase; }
+        
+        button {
+            width: 100%; padding: 16px; background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%);
+            color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease; letter-spacing: 0.3px;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.3);
+        }
+        button:not(.mode-btn):hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 28px rgba(220, 38, 38, 0.4);
+        }
+        button:not(.mode-btn):active { transform: translateY(-1px); }
+        
+        /* Export Button Styles */
+        .export-btn {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            margin-bottom: 25px;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .export-btn:hover {
+            background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+            box-shadow: 0 12px 28px rgba(37, 99, 235, 0.4);
+        }
+
+        .error {
+            background: rgba(220, 38, 38, 0.15); border-left: 4px solid #ef4444; padding: 16px 18px;
+            border-radius: 8px; margin-bottom: 25px; font-size: 0.95rem;
+        }
+        .error strong { color: #fca5a5; }
+        
+        .results-section { margin-top: 30px; }
+        .section-title { font-size: 0.9rem; color: #94a3b8; text-transform: uppercase; margin-bottom: 18px;
+                         font-weight: 600; letter-spacing: 0.5px; }
+        
+        .results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 32px; }
+        .result-card {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.3) 0%, rgba(30, 41, 59, 0.2) 100%);
+            padding: 20px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s ease; backdrop-filter: blur(10px);
+        }
+        .result-card:hover {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.5) 0%, rgba(30, 41, 59, 0.3) 100%);
+            border-color: rgba(56, 189, 248, 0.2);
+        }
+        .result-card.state-card {
+            grid-column: span 2; border-left: 4px solid #f97316;
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.08) 100%);
+            border: 1px solid rgba(249, 115, 22, 0.2);
+            padding: 24px;
+        }
+        .result-card.efficiency-card {
+            border-left: 4px solid #10b981;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        .efficiency-card .result-label { color: #a6f3d0; }
+        .efficiency-card .result-value { color: #10b981; }
+        .state-card .result-label { color: #fed7aa; }
+        .state-card .result-value { color: #fbbf24; }
+        .result-label { display: block; font-size: 0.7rem; color: #94a3b8; text-transform: uppercase;
+                       margin-bottom: 8px; font-weight: 600; letter-spacing: 0.4px; }
+        .result-value { display: block; font-size: 1.35rem; font-weight: 700; color: #38bdf8; }
+        
+        .chart-container {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.2) 0%, rgba(30, 41, 59, 0.15) 100%);
+            padding: 28px; border-radius: 12px; margin-top: 25px; border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .chart-container h3 { margin: 0 0 20px 0; font-size: 1.05rem; color: #cbd5e1; font-weight: 600; }
+        
+        .energy-balance {
+            display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 16px;
+        }
+        .balance-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 16px; background: rgba(51, 65, 85, 0.3); border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .balance-label { font-size: 0.9rem; color: #cbd5e1; font-weight: 500; }
+        .balance-value { font-size: 1.1rem; font-weight: 700; }
+        .balance-value.positive { color: #10b981; }
+        .balance-value.negative { color: #f87171; }
+        .balance-separator { height: 2px; background: rgba(255, 255, 255, 0.1); margin: 8px 0; }
+        .balance-item.total { background: rgba(56, 189, 248, 0.15); border-color: rgba(56, 189, 248, 0.3); }
+        .balance-item.total .balance-value { color: #38bdf8; }
+        
+        .state-points-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;
+        }
+        .state-point-card {
+            background: linear-gradient(135deg, rgba(51, 65, 85, 0.3) 0%, rgba(30, 41, 59, 0.2) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px;
+            padding: 16px; transition: all 0.3s ease;
+        }
+        .state-point-card:hover {
+            border-color: rgba(56, 189, 248, 0.3); background: linear-gradient(135deg, rgba(51, 65, 85, 0.5) 0%, rgba(30, 41, 59, 0.3) 100%);
+        }
+        .state-point-header {
+            display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+            padding-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .state-point-num {
+            display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;
+            background: linear-gradient(135deg, #ea580c 0%, #dc2626 100%); border-radius: 50%;
+            font-weight: 700; font-size: 0.95rem;
+        }
+        .state-point-name { font-size: 0.9rem; color: #cbd5e1; font-weight: 600; }
+        .data-row {
+            display: flex; justify-content: space-between; align-items: center; padding: 6px 0;
+            font-size: 0.85rem; color: #94a3b8;
+        }
+        .data-row strong { color: #cbd5e1; font-weight: 600; }
+        
+        .intermediate-table {
+            width: 100%; margin-top: 0; border-collapse: collapse; font-size: 0.9rem;
+        }
+        .intermediate-table thead { border-bottom: 2px solid rgba(56, 189, 248, 0.3); }
+        .intermediate-table th {
+            padding: 14px 12px; text-align: left; color: #38bdf8; font-weight: 600;
+            font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .intermediate-table td {
+            padding: 12px 12px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            color: #cbd5e1;
+        }
+        .intermediate-table tbody tr:hover { background: rgba(56, 189, 248, 0.08); }
+        
+        @media (max-width: 768px) {
+            .container { padding: 30px 16px; margin-top: 0; }
+            .glass-panel { padding: 30px; max-width: 100%; }
+            .input-row { flex-direction: column; gap: 0; }
+            .rankine-grid { grid-template-columns: 1fr; }
+            .results-grid { grid-template-columns: 1fr; }
+            .result-card.state-card { grid-column: span 1; }
+            .state-points-grid { grid-template-columns: 1fr; }
+            h2 { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <video autoplay muted loop playsinline class="video-bg">
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-smoke-coming-out-of-factory-chimneys-4217-large.mp4" type="video/mp4">
+    </video>
+
+    <div class="container">
+        <div class="glass-panel" id="report-container">
+            <div class="header-section">
+                <h2>Thermal Steam Engine</h2>
+                <p class="subtitle" id="main-subtitle">Advanced steam cycles and thermodynamic properties</p>
+                
+                <div class="mode-selector" id="mode-controls">
+                    <label style="font-size: 0.9rem;">Select Analysis Mode:</label>
+                    <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                        <button type="button" class="mode-btn {% if active_mode != 'rankine' %}active{% endif %}" onclick="switchMode('state')">
+                            State Point Analysis
+                        </button>
+                        <button type="button" class="mode-btn {% if active_mode == 'rankine' %}active{% endif %}" onclick="switchMode('rankine')">
+                            Rankine Cycle
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="POST" class="form-section" id="stateForm" style="{% if active_mode == 'rankine' %}display:none;{% endif %}">
+                {% csrf_token %}
+                <input type="hidden" name="mode" value="state_point">
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Absolute Pressure</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="any" name="pressure" required value="{{ p|default:'' }}">
+                            <select name="p_unit">
+                                <option value="bar" {% if p_unit == 'bar' %}selected{% endif %}>Bar</option>
+                                <option value="pa" {% if p_unit == 'pa' %}selected{% endif %}>Pascal</option>
+                                <option value="atm" {% if p_unit == 'atm' %}selected{% endif %}>Atm</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Temperature</label>
+                        <div class="input-with-unit">
+                            <input type="number" step="any" name="temperature" required value="{{ t|default:'' }}">
+                            <select name="t_unit">
+                                <option value="c" {% if t_unit == 'c' %}selected{% endif %}>°C</option>
+                                <option value="k" {% if t_unit == 'k' %}selected{% endif %}>Kelvin</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit">Compute Properties & Plot Diagram</button>
+            </form>
+            
+            <form method="POST" class="form-section" id="rankineForm" style="{% if active_mode != 'rankine' %}display:none;{% endif %}">
+                {% csrf_token %}
+                <input type="hidden" name="mode" value="rankine_cycle">
+                
+                <div class="rankine-grid">
+                    <div class="rankine-section">
+                        <h3 class="section-subtitle">Cycle Parameters</h3>
+                        <div class="input-group">
+                            <label>Condenser Pressure (Bar)</label>
+                            <input type="number" step="0.01" name="p_cond" required value="{{ p_low|default:'0.05' }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Boiler Pressure (Bar)</label>
+                            <input type="number" step="0.1" name="p_boiler" required value="{{ p_high|default:'10' }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Boiler Exit Temp (°C)</label>
+                            <input type="number" step="1" name="t_boiler" required value="{{ t_high|default:'450' }}">
+                        </div>
+                    </div>
+                    
+                    <div class="rankine-section">
+                        <h3 class="section-subtitle">Component Efficiencies</h3>
+                        <div class="input-group">
+                            <label>Pump Efficiency (%)</label>
+                            <input type="number" step="0.1" min="0" max="100" name="pump_eff" required value="{{ pump_eff|default:'85' }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Turbine Efficiency (%)</label>
+                            <input type="number" step="0.1" min="0" max="100" name="turbine_eff" required value="{{ turbine_eff|default:'85' }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="submit">Analyze Rankine Cycle</button>
+            </form>
+
+            {% if error %}
+                <div class="error"><strong>Analysis Failed:</strong> {{ error }}</div>
+            {% endif %}
+
+            {% if success and not rankine_cycle %}
+                <div class="results-section">
+                    <div class="section-title">Thermodynamic Properties</div>
+                    <button type="button" class="export-btn" onclick="exportToPDF('State Point Analysis Report')">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                        Download Analysis Report
+                    </button>
+                    <div class="results-grid">
+                        <div class="result-card state-card">
+                            <span class="result-label">Fluid State</span>
+                            <span class="result-value">{{ state }}</span>
+                        </div>
+                        <div class="result-card"><span class="result-label">Dryness Fraction (x)</span><span class="result-value">{{ x }}</span></div>
+                        <div class="result-card"><span class="result-label">Enthalpy (h)</span><span class="result-value">{{ h }} kJ/kg</span></div>
+                        <div class="result-card"><span class="result-label">Entropy (s)</span><span class="result-value">{{ s }} kJ/kg·K</span></div>
+                        <div class="result-card"><span class="result-label">Volume (v)</span><span class="result-value">{{ v }} m³/kg</span></div>
+                    </div>
+
+                    {% if intermediate_data %}
+                    <div class="chart-container">
+                        <h3>Intermediate Wet Region Properties</h3>
+                        <table class="intermediate-table">
+                            <thead>
+                                <tr><th>Dryness (x)</th><th>Enthalpy (kJ/kg)</th><th>Entropy (kJ/kg·K)</th><th>Volume (m³/kg)</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for row in intermediate_data %}
+                                <tr>
+                                    <td>{{ row.x }}</td>
+                                    <td>{{ row.h }}</td>
+                                    <td>{{ row.s }}</td>
+                                    <td>{{ row.v }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <div class="chart-container">
+                        <h3>Temperature-Entropy Diagram</h3>
+                        <canvas id="tsChart" height="250"></canvas>
+                    </div>
+                </div>
+            {% endif %}
+
+            {% if success and rankine_cycle %}
+                <div class="results-section">
+                    <div class="section-title">Rankine Cycle Analysis</div>
+                    
+                    <button type="button" class="export-btn" onclick="exportToPDF('Rankine Cycle Performance Report')">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                        Download Analysis Report
+                    </button>
+                    
+                    <div class="results-grid">
+                        <div class="result-card efficiency-card">
+                            <span class="result-label">Cycle Efficiency</span>
+                            <span class="result-value">{{ efficiency }}%</span>
+                        </div>
+                        <div class="result-card efficiency-card">
+                            <span class="result-label">Carnot Limit</span>
+                            <span class="result-value">{{ carnot_eff }}%</span>
+                        </div>
+                        <div class="result-card">
+                            <span class="result-label">Net Work Output</span>
+                            <span class="result-value">{{ w_net }} kJ/kg</span>
+                        </div>
+                        <div class="result-card">
+                            <span class="result-label">Heat Input</span>
+                            <span class="result-value">{{ q_in }} kJ/kg</span>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Work & Energy Balance</h3>
+                        <div class="energy-balance">
+                            <div class="balance-item">
+                                <div class="balance-label">Turbine Work Output</div>
+                                <div class="balance-value positive">{{ w_turbine }} kJ/kg</div>
+                            </div>
+                            <div class="balance-item">
+                                <div class="balance-label">Pump Work Input</div>
+                                <div class="balance-value negative">-{{ w_pump }} kJ/kg</div>
+                            </div>
+                            <div class="balance-separator"></div>
+                            <div class="balance-item total">
+                                <div class="balance-label">Net Work Output</div>
+                                <div class="balance-value">{{ w_net }} kJ/kg</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container">
+                        <h3>Cycle State Points</h3>
+                        <div class="state-points-grid">
+                            <div class="state-point-card">
+                                <div class="state-point-header">
+                                    <span class="state-point-num">1</span>
+                                    <span class="state-point-name">Saturated Liquid</span>
+                                </div>
+                                <div class="state-point-data">
+                                    <div class="data-row"><span>P:</span> <strong>{{ state1.p }} bar</strong></div>
+                                    <div class="data-row"><span>T:</span> <strong>{{ state1.T }}°C</strong></div>
+                                    <div class="data-row"><span>h:</span> <strong>{{ state1.h }} kJ/kg</strong></div>
+                                    <div class="data-row"><span>s:</span> <strong>{{ state1.s }} kJ/kg·K</strong></div>
+                                </div>
+                            </div>
+                            <div class="state-point-card">
+                                <div class="state-point-header">
+                                    <span class="state-point-num">2</span>
+                                    <span class="state-point-name">Pump Outlet</span>
+                                </div>
+                                <div class="state-point-data">
+                                    <div class="data-row"><span>P:</span> <strong>{{ state2.p }} bar</strong></div>
+                                    <div class="data-row"><span>T:</span> <strong>{{ state2.T }}°C</strong></div>
+                                    <div class="data-row"><span>h:</span> <strong>{{ state2.h }} kJ/kg</strong></div>
+                                    <div class="data-row"><span>s:</span> <strong>{{ state2.s }} kJ/kg·K</strong></div>
+                                </div>
+                            </div>
+                            <div class="state-point-card">
+                                <div class="state-point-header">
+                                    <span class="state-point-num">3</span>
+                                    <span class="state-point-name">Superheated Steam</span>
+                                </div>
+                                <div class="state-point-data">
+                                    <div class="data-row"><span>P:</span> <strong>{{ state3.p }} bar</strong></div>
+                                    <div class="data-row"><span>T:</span> <strong>{{ state3.T }}°C</strong></div>
+                                    <div class="data-row"><span>h:</span> <strong>{{ state3.h }} kJ/kg</strong></div>
+                                    <div class="data-row"><span>s:</span> <strong>{{ state3.s }} kJ/kg·K</strong></div>
+                                </div>
+                            </div>
+                            <div class="state-point-card">
+                                <div class="state-point-header">
+                                    <span class="state-point-num">4</span>
+                                    <span class="state-point-name">Condenser Inlet</span>
+                                </div>
+                                <div class="state-point-data">
+                                    <div class="data-row"><span>P:</span> <strong>{{ state4.p }} bar</strong></div>
+                                    <div class="data-row"><span>T:</span> <strong>{{ state4.T }}°C</strong></div>
+                                    <div class="data-row"><span>h:</span> <strong>{{ state4.h }} kJ/kg</strong></div>
+                                    <div class="data-row"><span>s:</span> <strong>{{ state4.s }} kJ/kg·K</strong></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chart-container">
+                        <h3>Temperature-Entropy Diagram (Rankine Cycle)</h3>
+                        <canvas id="rankineChart" height="250"></canvas>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching Logic
+        function switchMode(mode) {
+            const stateForm = document.getElementById('stateForm');
+            const rankineForm = document.getElementById('rankineForm');
+            const stateBtn = document.querySelectorAll('.mode-btn')[0];
+            const rankineBtn = document.querySelectorAll('.mode-btn')[1];
+
+            if (mode === 'state') {
+                stateForm.style.display = 'block';
+                rankineForm.style.display = 'none';
+                stateBtn.classList.add('active');
+                rankineBtn.classList.remove('active');
+            } else {
+                stateForm.style.display = 'none';
+                rankineForm.style.display = 'block';
+                stateBtn.classList.remove('active');
+                rankineBtn.classList.add('active');
+            }
+        }
+
+        // Improved PDF Export Logic for a Full-Page Report
+        function exportToPDF(reportTitle) {
+            // Target the entire panel so the header logo/title is included in the report
+            const targetElement = document.getElementById('report-container');
+            const forms = document.querySelectorAll('.form-section');
+            const modeControls = document.getElementById('mode-controls');
+            const exportBtns = document.querySelectorAll('.export-btn');
+            const subtitle = document.getElementById('main-subtitle');
+            
+            // 1. Temporarily hide UI elements (buttons, inputs) before taking the PDF snapshot
+            forms.forEach(form => form.style.display = 'none');
+            exportBtns.forEach(btn => btn.style.display = 'none');
+            if (modeControls) modeControls.style.display = 'none';
+            
+            // Swap the subtitle to clearly show what kind of report this is
+            const originalSubtitle = subtitle.innerText;
+            subtitle.innerText = reportTitle;
+
+            // 2. Configure html2pdf for high resolution and forced PDF generation
+            const opt = {
+                margin:       0.3,
+                filename:     reportTitle.replace(/\s+/g, '_') + '.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#0f172a' },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            // 3. Generate PDF, then immediately restore the screen
+            html2pdf().set(opt).from(targetElement).save().then(() => {
+                // Restore subtitle
+                subtitle.innerText = originalSubtitle;
+                
+                // Restore form based on what tab was active
+                const activeTab = document.querySelector('.mode-btn.active').innerText;
+                if (activeTab.includes('Rankine')) {
+                    document.getElementById('rankineForm').style.display = 'block';
+                } else {
+                    document.getElementById('stateForm').style.display = 'block';
+                }
+                
+                // Restore buttons
+                if (modeControls) modeControls.style.display = 'block';
+                exportBtns.forEach(btn => btn.style.display = 'flex');
+            });
+        }
+
+        // Initialize Charts
+        document.addEventListener('DOMContentLoaded', function() {
+            const liquidData = {{ liquid_line|default:"[]"|safe }};
+            const vaporData = {{ vapor_line|default:"[]"|safe }};
+
+            {% if success and not rankine_cycle %}
+            const stateCtx = document.getElementById('tsChart');
+            if (stateCtx && stateCtx.getContext) {
+                const userPoint = [{ x: {{ point_s|default:"0" }}, y: {{ point_t|default:"0" }} }];
+                new Chart(stateCtx.getContext('2d'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            { label: 'Saturated Liquid Line (x=0)', data: liquidData, borderColor: '#38bdf8', backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 2.5, tension: 0.4 },
+                            { label: 'Saturated Vapor Line (x=1)', data: vaporData, borderColor: '#94a3b8', backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 2.5, tension: 0.4 },
+                            { label: 'Your Data Point', data: userPoint, backgroundColor: '#ef4444', borderColor: '#ffffff', pointRadius: 10, pointBorderWidth: 2.5, pointHoverRadius: 12, showLine: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: true,
+                        plugins: { legend: { labels: { color: '#cbd5e1', font: { size: 12, weight: '500' } } }, tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.95)', titleColor: '#cbd5e1', bodyColor: '#94a3b8' } },
+                        scales: { x: { title: { display: true, text: 'Entropy, s (kJ/kg·K)', color: '#cbd5e1' }, grid: { color: 'rgba(255, 255, 255, 0.08)' }, ticks: { color: '#94a3b8' } }, y: { title: { display: true, text: 'Temperature, T (°C)', color: '#cbd5e1' }, grid: { color: 'rgba(255, 255, 255, 0.08)' }, ticks: { color: '#94a3b8' } } }
+                    }
+                });
+            }
+            {% endif %}
+
+            {% if success and rankine_cycle %}
+            const rankineCtx = document.getElementById('rankineChart');
+            if (rankineCtx && rankineCtx.getContext) {
+                const cyclePoints = {{ cycle_points|default:"[]"|safe }};
+                new Chart(rankineCtx.getContext('2d'), {
+                    type: 'scatter',
+                    data: {
+                        datasets: [
+                            { label: 'Saturation Dome - Liquid', data: liquidData, borderColor: 'rgba(56, 189, 248, 0.3)', backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5, tension: 0.4 },
+                            { label: 'Saturation Dome - Vapor', data: vaporData, borderColor: 'rgba(148, 163, 184, 0.3)', backgroundColor: 'transparent', showLine: true, pointRadius: 0, borderWidth: 1.5, tension: 0.4 },
+                            { label: 'Rankine Cycle', data: cyclePoints, borderColor: '#10b981', backgroundColor: 'transparent', showLine: true, borderWidth: 3, fill: false, pointRadius: 0 },
+                            { label: 'State Points', data: cyclePoints.slice(0, 4), pointBackgroundColor: ['#3b82f6', '#8b5cf6', '#ef4444', '#f59e0b'], pointBorderColor: '#ffffff', pointRadius: 10, pointBorderWidth: 2.5, pointHoverRadius: 12, showLine: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: true,
+                        plugins: {
+                            legend: { labels: { color: '#cbd5e1', font: { size: 12, weight: '500' } } },
+                            tooltip: { backgroundColor: 'rgba(15, 23, 42, 0.95)', titleColor: '#cbd5e1', bodyColor: '#94a3b8', callbacks: { label: function(context) { const label = context.dataset.label || ''; return `${label}: s=${context.parsed.x.toFixed(3)}, T=${context.parsed.y.toFixed(1)}°C`; } } }
+                        },
+                        scales: { x: { title: { display: true, text: 'Entropy, s (kJ/kg·K)', color: '#cbd5e1' }, grid: { color: 'rgba(255, 255, 255, 0.08)' }, ticks: { color: '#94a3b8' } }, y: { title: { display: true, text: 'Temperature, T (°C)', color: '#cbd5e1' }, grid: { color: 'rgba(255, 255, 255, 0.08)' }, ticks: { color: '#94a3b8' } } }
+                    }
+                });
+            }
+            {% endif %}
+        });
+    </script>
+</body>
+</html>
